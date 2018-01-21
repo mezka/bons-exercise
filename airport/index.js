@@ -1,91 +1,67 @@
-function fillIndexesWith(fillObj, targetArray, indexesArr) {
+// a and b are javascript Date objects
+function computeDifferenceInMinutes(date1, date2) {
+  var diff = Math.abs(date1 - date2);
 
-    indexesArr.forEach((index) => {
-        targetArray[index] = fillObj;
-    });
-};
+  var minutes = Math.floor(diff / 1000 / 60);
 
-function scheduleDateToBlock(dateObj) {
-
-    var blockSum = dateObj.getHours() * 3 + Math.floor(dateObj.getMinutes() / 20);
-
-    if (dateObj.getMinutes() % 20) {
-        return [blockSum, blockSum + 1];
-    } else {
-        return [blockSum];
-    }
+  return minutes;
 }
 
 class Scheduler {
+  constructor() {
+    this.scheduleArr = [];
+  }
 
-    constructor() {
-        this.usedBlocks = [];
+  couldScheduleAt(dateObj) {
+    if (
+      this.scheduleArr.length > 0 &&
+      this.scheduleArr.every(
+        currentDateObj =>
+          computeDifferenceInMinutes(dateObj, currentDateObj) < 20
+      )
+    ) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  scheduleAt(dateObj) {
+    if (this.couldScheduleAt(dateObj)) {
+      this.scheduleArr.push(dateObj);
+      console.log(this.scheduleArr);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  unscheduleAt(dateObj) {
+    var index = this.scheduleArr.findIndex(
+      currentDateObj => currentDateObj === dateObj
+    );
+
+    if (index !== -1) {
+      this.scheduleArr.splice(index, 1);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  schedule() {
+    var candidate = new Date();
+
+    while (!this.couldScheduleAt(candidate)) {
+      candidate.setTime(candidate.getTime() + 1000 * 60 * 20);
     }
 
-
-    // returns true if there’s room to schedule at ‘time’
-    couldScheduleAt(dateObj) {
-        var candidates = scheduleDateToBlock(dateObj);
-        
-        
-        return !this.usedBlocks.find((currentElement) => {
-                return currentElement === candidates[0];
-            }) && !this.usedBlocks.find((currentElement) => {
-                return currentElement === candidates[candidates.length % 1];
-            })
-        
+    if (this.scheduleAt(candidate)) {
+      return candidate;
+    } else {
+      throw "Internal program error, couldn't schedule candidate";
     }
-
-    // returns true if we successfully scheduled
-    scheduleAt(dateObj) {
-        let indexesArr = scheduleDateToBlock(dateObj);
-
-        if (this.couldScheduleAt(dateObj)) {
-            fillIndexesWith(dateObj, this.usedBlocks, indexesArr);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    // Choose an available time to schedule at, and return that time
-    schedule(){
-
-        let date = new Date();
-        let index = 0;
-
-        do{
-            index = this.usedBlocks.findIndex((current) => { return !current; });
-            date.setHours(index / 3);
-            date.setMinutes(index % 3);
-        }while(this.usedBlocks[index + 1]);
-
-        return date;
-    }
-
-    // returns true if we successfully unscheduled something
-    unscheduleAt(dateObj){
-
-        let out = false;
-
-        this.usedBlocks.forEach((current) => {
-            if(dateObj === current){
-                current = null;
-                out = true;
-            }
-        });
-
-        return out;
-    }
+  }
 }
 
-var date = new Date();
-var scheduler = new Scheduler();
-
-
-console.log(scheduleDateToBlock(date));
-console.log(scheduler.couldScheduleAt(date));
-console.log(scheduler.scheduleAt(date));
-console.log(scheduler.scheduleAt(scheduler.schedule()));
-
-console.log(scheduler.usedBlocks);
+module.exports = Scheduler;
